@@ -165,7 +165,7 @@ ProcessResult PluginDetectBalls::process ( FrameData * data, RenderOptions * opt
     near_robot_dist_sq = sq(_settings->_ball_too_near_robot_dist->getDouble());
   }
 
-  const CMVision::Region * reg = 0;
+
 
   //acquire orange region list from data-map:
   CMVision::ColorRegionList * colorlist;
@@ -174,7 +174,6 @@ ProcessResult PluginDetectBalls::process ( FrameData * data, RenderOptions * opt
     printf ( "error in ball detection plugin: no region-lists were found!\n" );
     return ProcessingFailed;
   }
-  reg = colorlist->getRegionList ( color_id_ball ).getInitialElement();
 
   //acquire color-labeled image from data-map:
   const Image<raw8> * image = ( Image<raw8> * ) ( data->map.get ( "cmv_threshold" ) );
@@ -199,76 +198,100 @@ ProcessResult PluginDetectBalls::process ( FrameData * data, RenderOptions * opt
 
   if ( max_balls > 0 ) {
     list<BallDetectResult> result;
-    filter.init ( reg );
-    
-    while ( ( reg = filter.getNext() ) != 0 ) {
-      float conf = 1.0;
+    for ( int col_id_i = 0 ; col_id_i < colorlist->getNumColorRegions() ; col_id_i ++ )
+    {
+        if ( _settings->_color_filter->getBool() )
+        {
+            if ( _lut->getChannelID ("Red") == col_id_i && (!_settings->_color_red->getBool()) )
+                continue;
+            if ( _lut->getChannelID ("Green") == col_id_i && (!_settings->_color_green->getBool()) )
+                continue;
+            if ( _lut->getChannelID ("Blue") == col_id_i && (!_settings->_color_blue->getBool()) )
+                continue;
+            if ( _lut->getChannelID ("Yellow") == col_id_i && (!_settings->_color_yellow->getBool()) )
+                continue;
+            if ( _lut->getChannelID ("Cyan") == col_id_i && (!_settings->_color_cyan->getBool()) )
+                continue;
+            if ( _lut->getChannelID ("Pink") == col_id_i && (!_settings->_color_magenta->getBool()) )
+                continue;
+        }
 
-      if ( filter_gauss==true ) {
-        int a = reg->area - bound ( reg->area,exp_area_min,exp_area_max );
-        conf = gaussian ( a / exp_area_var );
-      }
+        const CMVision::Region * reg = 0;
+        reg = colorlist->getRegionList ( col_id_i ).getInitialElement();
+        filter.init ( reg );
 
-      //TODO: add a plugin for confidence masking... possibly multi-layered.
-      //      to replace the commented det.mask.get(...) below:
-      //if (filter_conf_mask) conf*=det.mask.get(reg->cen_x,reg->cen_y));
+        while ( ( reg = filter.getNext() ) != 0 ) {
+          float conf = 1.0;
 
-      //convert from image to field coordinates:
-      vector2d pixel_pos ( reg->cen_x,reg->cen_y );
-      vector3d field_pos_3d;
-      camera_parameters.image2field ( field_pos_3d,pixel_pos,z_height );
-      vector2d field_pos ( field_pos_3d.x,field_pos_3d.y );
-
-      //filter points that are outside of the field:
-      if ( filter_ball_in_field==true && field_filter.isInFieldPlusThreshold ( field_pos, max(0.0,filter_ball_on_field_filter_threshold) ) ==false ) {
-        conf = 0.0;
-      }
-
-      //filter out points that are deep inside the goal-box
-      if ( filter_ball_in_goal==true && field_filter.isFarInGoal ( field_pos ) ==true ) {
-        conf = 0.0;
-      }
-
-      //TODO add ball-too-near-robot filter
-      if ( use_near_robot_filter && conf > 0.0 ) {
-        int robots_n=0;
-        for (int team = 0; team < 2; team++) {
-          if (team==0) {
-            robots_n=robots_blue_n;
-          } else {
-            robots_n=robots_yellow_n;
+          if ( filter_gauss==true ) {
+            int a = reg->area - bound ( reg->area,exp_area_min,exp_area_max );
+            conf = gaussian ( a / exp_area_var );
           }
-          if (robots_n > 0) {
-            ::google::protobuf::RepeatedPtrField< ::SSL_DetectionRobot > * robots;
-            if (team==0) {
-              robots = detection_frame->mutable_robots_blue();
-            } else {
-              robots = detection_frame->mutable_robots_yellow();
-            }
-            for (int r = 0; r < robots_n; r++) {
-              const SSL_DetectionRobot & robot = robots->Get(r);
-              if (robot.confidence() > 0.0) {
-                if ((sq((double)(robot.x())-(double)(field_pos.x)) + sq((double)(robot.y())-(double)(field_pos.y))) < near_robot_dist_sq) {
-                  conf = 0.0;
-                  break;
+
+          //TODO: add a plugin for confidence masking... possibly multi-layered.
+          //      to replace the commented det.mask.get(...) below:
+          //if (filter_conf_mask) conf*=det.mask.get(reg->cen_x,reg->cen_y));
+
+          //convert from image to field coordinates:
+          vector2d pixel_pos ( reg->cen_x,reg->cen_y );
+          vector3d field_pos_3d;
+          camera_parameters.image2field ( field_pos_3d,pixel_pos,z_height );
+          vector2d field_pos ( field_pos_3d.x,field_pos_3d.y );
+
+          //filter points that are outside of the field:
+          if ( filter_ball_in_field==true && field_filter.isInFieldPlusThreshold ( field_pos, max(0.0,filter_ball_on_field_filter_threshold) ) ==false ) {
+            conf = 0.0;
+          }
+          if ( field_pos.x < 0 ){
+            conf = 0.0;
+          }
+
+          //filter out points that are deep inside the goal-box
+          if ( filter_ball_in_goal==true && field_filter.isFarInGoal ( field_pos ) ==true ) {
+            conf = 0.0;
+          }
+
+          //TODO add ball-too-near-robot filter
+          if ( use_near_robot_filter && conf > 0.0 ) {
+            int robots_n=0;
+            for (int team = 0; team < 2; team++) {
+              if (team==0) {
+                robots_n=robots_blue_n;
+              } else {
+                robots_n=robots_yellow_n;
+              }
+              if (robots_n > 0) {
+                ::google::protobuf::RepeatedPtrField< ::SSL_DetectionRobot > * robots;
+                if (team==0) {
+                  robots = detection_frame->mutable_robots_blue();
+                } else {
+                  robots = detection_frame->mutable_robots_yellow();
                 }
+                for (int r = 0; r < robots_n; r++) {
+                  const SSL_DetectionRobot & robot = robots->Get(r);
+                  if (robot.confidence() > 0.0) {
+                    if ((sq((double)(robot.x())-(double)(field_pos.x)) + sq((double)(robot.y())-(double)(field_pos.y))) < near_robot_dist_sq) {
+                      conf = 0.0;
+                      break;
+                    }
+                  }
+                }
+                if (conf==0.0) break;
               }
             }
-            if (conf==0.0) break;
           }
+
+          // histogram check if enabled
+          if ( filter_ball_histogram && conf > 0.0 && checkHistogram ( image, reg, min_greenness, max_markeryness ) ==false ) {
+            conf = 0.0;
+          }
+
+          // add filtered region to the region list
+          if(conf > 0) {
+            result.push_back(BallDetectResult(reg,conf));
+          }
+
         }
-      }
-
-      // histogram check if enabled
-      if ( filter_ball_histogram && conf > 0.0 && checkHistogram ( image, reg, min_greenness, max_markeryness ) ==false ) {
-        conf = 0.0;
-      }
-
-      // add filtered region to the region list
-      if(conf > 0) {
-        result.push_back(BallDetectResult(reg,conf));
-      }
-
     }
 
     // sort result by confidence and output first max_balls region(s)

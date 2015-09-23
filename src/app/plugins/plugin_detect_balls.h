@@ -69,6 +69,15 @@ protected:
     VarDouble * _ball_on_field_filter_threshold;
     VarBool   * _ball_in_goal_filter;
 
+  VarList   * _filter_sharif;
+      VarBool   * _color_filter;
+      VarBool   * _color_red;
+      VarBool   * _color_green;
+      VarBool   * _color_blue;
+      VarBool   * _color_yellow;
+      VarBool   * _color_cyan;
+      VarBool   * _color_magenta;
+
 public:
   PluginDetectBallsSettings() {
 
@@ -105,6 +114,15 @@ public:
     _filter_geometry->addChild(_ball_on_field_filter = new VarBool("Ball-In-Field Filter",true));
     _filter_geometry->addChild(_ball_on_field_filter_threshold = new VarDouble("Ball-In-Field Extra Space (mm)",30.0));
     _filter_geometry->addChild(_ball_in_goal_filter = new VarBool("Ball-In-Goal Filter",true));
+
+  _settings->addChild(_filter_sharif = new VarList("SharifCup Filters"));
+      _filter_sharif->addChild(_color_filter = new VarBool("Color Filter",true));
+      _filter_sharif->addChild(_color_red = new VarBool("Red",true));
+      _filter_sharif->addChild(_color_green = new VarBool("Green",true));
+      _filter_sharif->addChild(_color_blue = new VarBool("Blue",true));
+      _filter_sharif->addChild(_color_yellow = new VarBool("Yellow",true));
+      _filter_sharif->addChild(_color_cyan = new VarBool("Cyan",true));
+      _filter_sharif->addChild(_color_magenta = new VarBool("Magenta",true));
 
   }
   VarList * getSettings() {

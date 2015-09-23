@@ -80,12 +80,6 @@ protected:
   RingBuffer<FrameData> * rb_bb;
 
 public:
-  virtual QSize sizeHint() const {
-    QSize size;
-    size.setHeight(580);
-    size.setWidth(600);
-    return size;
-  }
   virtual void setRingBufferBB(RingBuffer<FrameData> * rb)
   {
     rb_bb=rb;
@@ -182,6 +176,9 @@ signals:
   void updateVideoStats(VideoStats);
   void signalMouseAction ( QMouseEvent * event, pixelloc loc );
   void signalKeyPressEvent ( QKeyEvent * event );
+
+
+
 };
 
 #endif /*GLWIDGET_H_*/

@@ -34,7 +34,7 @@ MainWindow::MainWindow(bool start_capture, bool enforce_affinity)
   tmodel=new VarTreeModel();
 
   splitter = new QSplitter(Qt::Horizontal,this);
-  cam_tabs = new QTabWidget();
+  splitter2 = new QSplitter(Qt::Vertical);
 
   root=new VarList("Vision System");
 
@@ -47,14 +47,13 @@ MainWindow::MainWindow(bool start_capture, bool enforce_affinity)
   //opt->parse();
 
   //load RoboCup SSL stack by default:
-  multi_stack=new MultiStackRoboCupSSL(opts, 4);
+  multi_stack=new MultiStackRoboCupSSL(opts, 2);
 
   VarExternal * stackvar;
   root->addChild(stackvar= new VarExternal((multi_stack->getSettingsFileName() + ".xml").c_str(),multi_stack->getName()));
   stackvar->addChild(multi_stack->getSettings());
   //create tabs, GL visualizations and tool-panes for each capture thread in the multi-stack:
   for (unsigned int i=0;i<multi_stack->threads.size();i++) {
-    QSplitter * splitter2 = new QSplitter(Qt::Vertical);
     VisionStack * s = multi_stack->threads[i]->getStack();
     if (affinity!=0) multi_stack->threads[i]->setAffinityManager(affinity);
 
@@ -99,18 +98,18 @@ MainWindow::MainWindow(bool start_capture, bool enforce_affinity)
             }
             right_tab->addTab(tmp_control,QString::fromStdString(p->getName()));
           }
-
+        
           QWidget * tmp_vis = p->getVisualizationWidget();
           if (tmp_vis!=0) splitter2->addWidget(tmp_vis);
         }
-
+      
       } else {
         if (p->getSettings()!=0) threadvar->addChild(p->getSettings());
         //this is a local plugin relating only to a single thread
         //add it to the context.
         QWidget * tmp_control = p->getControlWidget();
         if (tmp_control!=0) stack_control_tab->addTab(tmp_control,QString::fromStdString(p->getName()));
-
+      
         QWidget * tmp_vis = p->getVisualizationWidget();
         if (tmp_vis!=0) stack_vis_splitter->addWidget(tmp_vis);
       }
@@ -118,10 +117,8 @@ MainWindow::MainWindow(bool start_capture, bool enforce_affinity)
     stackvar->addChild(threadvar);
 
     splitter2->addWidget(stack_widget);
-    splitter2->addWidget(new QWidget());
-    cam_tabs->addTab(splitter2, label);
   }
-
+  
   if (affinity!=0) affinity->demandCore(multi_stack->threads.size());
 
   // Set position and size of main window:
@@ -136,12 +133,11 @@ MainWindow::MainWindow(bool start_capture, bool enforce_affinity)
   //FINISHED STRUCTURAL TREE
   //NOW LOAD DATA:
 
-  world.push_back(root);
+  world.push_back(root); 
   world=VarXML::read( world,"settings.xml");
 
   //update network output settings from xml file
   ((MultiStackRoboCupSSL*)multi_stack)->RefreshNetworkOutput();
-  ((MultiStackRoboCupSSL*)multi_stack)->RefreshLegacyNetworkOutput();
   multi_stack->start();
 
   if (start_capture==true) {
@@ -160,7 +156,7 @@ MainWindow::MainWindow(bool start_capture, bool enforce_affinity)
   left_tab->setTabPosition(QTabWidget::West);
 
   splitter->addWidget(left_tab);
-  splitter->addWidget(cam_tabs);
+  splitter->addWidget(splitter2);
   if (right_tab!=0) splitter->addWidget(right_tab);
 
   left_tab->addTab(tree_view,"Data-Tree");
@@ -210,7 +206,7 @@ void MainWindow::closeEvent(QCloseEvent * event ) {
 
 MainWindow::~MainWindow() {
   if (affinity!=0) delete affinity;
-  //FIXME: right now we don't clean up anything
+	//FIXME: right now we don't clean up anything
   VarXML::write(world,"settings.xml");
 
   // Stop stack:

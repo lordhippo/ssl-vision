@@ -34,18 +34,17 @@ class MyThread : public QThread
 protected:
   void run()
   {
-    static const double minDuration = 0.01; //100FPS
+    static const double minDuration = 0.0; //100FPS
     RoboCupSSLClient client;
     client.open(false);
     SSL_WrapperPacket packet;
     while(runApp) {
-      while (client.receive(packet)) {
+      if (client.receive(packet)) {
         if (packet.has_detection()) {
           SSL_DetectionFrame detection = packet.detection();
           view->updateDetection(detection);
         }
         if (packet.has_geometry()) {
-          view->updateFieldGeometry(packet.geometry().field());
         }
       }
       Sleep(minDuration);

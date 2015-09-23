@@ -19,30 +19,22 @@
 */
 //========================================================================
 
-#include <vector>
-#include "field.h"
-#include "geometry.h"
-
 #ifndef FIELD_DEFAULT_CONSTANTS_H
 #define FIELD_DEFAULT_CONSTANTS_H
-
-class FieldLine;
-class FieldCircularArc;
-
-namespace FieldConstantsRoboCup2014 {
-
-const double kFieldLength = 9000.0;
-const double kFieldWidth = 6000.0;
-const double kGoalWidth = 1000.0;
-const double kGoalDepth = 200.0;
-const double kBoundaryWidth = 250.0;
-
-extern const std::size_t kNumFieldLines;
-extern const FieldLine kFieldLines[];
-
-extern const std::size_t kNumFieldArcs;
-extern const FieldCircularArc kFieldArcs[];
-
-extern const GVector::vector2d<double> kCameraControlPoints[4][4];
+namespace FieldConstantsRoboCup2009 {
+  static const int line_width = 10;
+  static const int field_length=6050;
+  static const int field_width=4050;
+  static const int boundary_width=250;
+  static const int referee_width=425;
+  static const int goal_width=700;
+  static const int goal_depth=180;
+  static const int goal_wall_width=20;
+  static const int center_circle_radius=500;
+  static const int defense_radius=800;
+  static const int defense_stretch=350;
+  static const int free_kick_from_defense_dist=200;
+  static const int penalty_spot_from_field_line_dist=750;
+  static const int penalty_line_from_spot_dist=400;
 }
 #endif // FIELD_H

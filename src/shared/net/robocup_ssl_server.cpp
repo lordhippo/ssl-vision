@@ -41,6 +41,7 @@ void RoboCupSSLServer::close() {
 
 bool RoboCupSSLServer::open() {
   close();
+  
   if(!mc.open(_port,true,true)) {
     fprintf(stderr,"Unable to open UDP network port: %d\n",_port);
     fflush(stderr);
@@ -60,34 +61,43 @@ bool RoboCupSSLServer::open() {
     fflush(stderr);
     return(false);
   }
+
   return(true);
+}
+
+bool RoboCupSSLServer::send(const SSL_WrapperPacket & packet) {
+  string buffer;
+  packet.SerializeToString(&buffer);
+  Net::Address multiaddr;
+  multiaddr.setHost(_net_address.c_str(),_port);
+  bool result;
+  mutex.lock();
+  result=mc.send(buffer.c_str(),buffer.length(),multiaddr);
+  mutex.unlock();
+  if (result==false) {
+    fprintf(stderr,"Sending UDP datagram failed (maybe too large?). Size was: %zu byte(s)\n",buffer.length());
+  }
+  return(result);
 }
 
 bool RoboCupSSLServer::send(const SSL_DetectionFrame & frame) {
   SSL_WrapperPacket pkt;
   SSL_DetectionFrame * nframe = pkt.mutable_detection();
   nframe->CopyFrom(frame);
-  return sendWrapperPacket<SSL_WrapperPacket>(pkt);
+  return send(pkt);
 }
 
 bool RoboCupSSLServer::send(const SSL_GeometryData & geometry) {
   SSL_WrapperPacket pkt;
   SSL_GeometryData * gdata = pkt.mutable_geometry();
   gdata->CopyFrom(geometry);
-  return sendWrapperPacket<SSL_WrapperPacket>(pkt);
+  return send(pkt);
 }
 
-bool RoboCupSSLServer::sendLegacyMessage(const SSL_DetectionFrame& frame) {
-  RoboCup2014Legacy::Wrapper::SSL_WrapperPacket pkt;
-  SSL_DetectionFrame * nframe = pkt.mutable_detection();
-  nframe->CopyFrom(frame);
-  return sendWrapperPacket<RoboCup2014Legacy::Wrapper::SSL_WrapperPacket>(pkt);
+bool RoboCupSSLServer::send(const LHP_Frame & frame) {
+  SSL_WrapperPacket pkt;
+  LHP_Frame * gdata = pkt.mutable_lframe();
+  gdata->CopyFrom(frame);
+  return send(pkt);
 }
 
-bool RoboCupSSLServer::sendLegacyMessage(
-    const RoboCup2014Legacy::Geometry::SSL_GeometryData& geometry) {
-  RoboCup2014Legacy::Wrapper::SSL_WrapperPacket pkt;
-  RoboCup2014Legacy::Geometry::SSL_GeometryData * gdata = pkt.mutable_geometry();
-  gdata->CopyFrom(geometry);
-  return sendWrapperPacket<RoboCup2014Legacy::Wrapper::SSL_WrapperPacket>(pkt);
-}

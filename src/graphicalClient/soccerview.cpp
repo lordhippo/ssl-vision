@@ -21,38 +21,32 @@
 
 #include "soccerview.h"
 
-#include "field.h"
-#include "field_default_constants.h"
-
-using FieldConstantsRoboCup2014::kNumFieldLines;
-using FieldConstantsRoboCup2014::kNumFieldArcs;
-using FieldConstantsRoboCup2014::kFieldLines;
-using FieldConstantsRoboCup2014::kFieldArcs;
-
-GLSoccerView::FieldDimensions::FieldDimensions() :
-  field_length(FieldConstantsRoboCup2014::kFieldLength),
-  field_width(FieldConstantsRoboCup2014::kFieldWidth),
-  boundary_width(FieldConstantsRoboCup2014::kBoundaryWidth) {
-  for (size_t i = 0; i < kNumFieldLines; ++i) {
-    lines.push_back(new FieldLine(kFieldLines[i]));
-  }
-  for (size_t i = 0; i < kNumFieldArcs; ++i) {
-    arcs.push_back(new FieldCircularArc(kFieldArcs[i]));
-  }
+GLSoccerView::FieldDimensions::FieldDimensions()
+{
+  line_width = FieldConstantsRoboCup2009::line_width;
+  field_length = FieldConstantsRoboCup2009::field_length;
+  field_width = FieldConstantsRoboCup2009::field_width;
+  boundary_width = FieldConstantsRoboCup2009::boundary_width;
+  referee_width = FieldConstantsRoboCup2009::referee_width;
+  goal_width = FieldConstantsRoboCup2009::goal_width;
+  goal_depth = FieldConstantsRoboCup2009::goal_depth;
+  goal_wall_width = FieldConstantsRoboCup2009::goal_wall_width;
+  center_circle_radius = FieldConstantsRoboCup2009::center_circle_radius;
+  defense_radius = FieldConstantsRoboCup2009::defense_radius;
+  defense_stretch = FieldConstantsRoboCup2009::defense_stretch;
+  free_kick_from_defense_dist = FieldConstantsRoboCup2009::free_kick_from_defense_dist;
+  penalty_spot_from_field_line_dist = FieldConstantsRoboCup2009::penalty_spot_from_field_line_dist;
+  penalty_line_from_spot_dist = FieldConstantsRoboCup2009::penalty_line_from_spot_dist;
 }
 
-GLSoccerView::GLSoccerView(QWidget* parent) :
-    QGLWidget(QGLFormat(
-        QGL::DoubleBuffer | QGL::DepthBuffer | QGL::SampleBuffers),parent) {
-  viewScale =
-      (fieldDim.field_length + fieldDim.boundary_width) / sizeHint().width();
-  viewScale = max(viewScale,
-                  (fieldDim.field_width + fieldDim.boundary_width) /
-                      sizeHint().height());
-
+GLSoccerView::GLSoccerView(QWidget* parent) : QGLWidget(QGLFormat ( QGL::DoubleBuffer | QGL::DepthBuffer | QGL::SampleBuffers),parent)
+{ 
+  viewScale = (fieldDim.field_length+fieldDim.boundary_width+fieldDim.referee_width)/sizeHint().width();
+  viewScale = max(viewScale, (fieldDim.field_width+fieldDim.boundary_width+fieldDim.referee_width)/sizeHint().height());
   viewXOffset = viewYOffset = 0.0;
   setAutoFillBackground(false); //Do not let painter auto fill the widget's background: we'll do it manually through openGl
   connect(this, SIGNAL(postRedraw()), this, SLOT(redraw()));
+  fieldLinesList = GL_INVALID_VALUE;
   blueRobotShape = GL_INVALID_VALUE;
   yellowRobotShape = GL_INVALID_VALUE;
   greyRobotShape = GL_INVALID_VALUE;
@@ -84,7 +78,7 @@ void GLSoccerView::mousePressEvent(QMouseEvent* event)
   rightButton = event->buttons().testFlag(Qt::RightButton);
   bool shiftKey = event->modifiers().testFlag(Qt::ShiftModifier);
   bool ctrlKey = event->modifiers().testFlag(Qt::ControlModifier);
-
+  
   if(leftButton)
     setCursor(Qt::ClosedHandCursor);
   if(midButton)
@@ -94,7 +88,7 @@ void GLSoccerView::mousePressEvent(QMouseEvent* event)
     mouseStartX = event->x();
     mouseStartY = event->y();
     postRedraw();
-  }
+  }  
 }
 
 void GLSoccerView::mouseReleaseEvent(QMouseEvent* event)
@@ -110,9 +104,9 @@ void GLSoccerView::mouseMoveEvent(QMouseEvent* event)
   bool leftButton = event->buttons().testFlag(Qt::LeftButton);
   bool midButton = event->buttons().testFlag(Qt::MidButton);
   bool rightButton = event->buttons().testFlag(Qt::RightButton);
-
+  
   if(debug) printf("MouseMove Event, Left:%d Mid:%d Right:%d\n", leftButton?1:0, midButton?1:0, rightButton?1:0);
-
+  
   if(leftButton){
     //Pan
     viewXOffset -= viewScale*double(event->x() - mouseStartX);
@@ -156,11 +150,8 @@ void GLSoccerView::keyPressEvent(QKeyEvent* event)
 
 void GLSoccerView::resetView()
 {
-  viewScale =
-      (fieldDim.field_length + fieldDim.boundary_width) / width();
-  viewScale = max(viewScale,
-                  (fieldDim.field_width + fieldDim.boundary_width) / height());
-
+  viewScale = (fieldDim.field_length+fieldDim.boundary_width+fieldDim.referee_width)/width();
+  viewScale = max(viewScale, (fieldDim.field_width+fieldDim.boundary_width+fieldDim.referee_width)/height());
   viewXOffset = viewYOffset = 0.0;
   recomputeProjection();
   postRedraw();
@@ -187,7 +178,17 @@ void GLSoccerView::resizeGL(int width, int height)
 }
 
 void GLSoccerView::initializeGL()
-{
+{ 
+  fieldLinesList = glGenLists(1);
+  if(fieldLinesList==GL_INVALID_VALUE){
+    printf("Unable to create display list!\n");
+    exit(1);
+  }
+  glNewList(fieldLinesList, GL_COMPILE);
+  drawFieldLines(fieldDim);
+  glEndList();
+  
+  
   blueRobotShape = glGenLists(1);
   if(blueRobotShape==GL_INVALID_VALUE){
     printf("Unable to create display list!\n");
@@ -196,7 +197,7 @@ void GLSoccerView::initializeGL()
   glNewList(blueRobotShape, GL_COMPILE);
   drawRobot(teamBlue,true,false);
   glEndList();
-
+  
   yellowRobotShape = glGenLists(1);
   if(yellowRobotShape==GL_INVALID_VALUE){
     printf("Unable to create display list!\n");
@@ -205,7 +206,7 @@ void GLSoccerView::initializeGL()
   glNewList(yellowRobotShape, GL_COMPILE);
   drawRobot(teamYellow,true,false);
   glEndList();
-
+  
   greyRobotShape = glGenLists(1);
   if(greyRobotShape==GL_INVALID_VALUE){
     printf("Unable to create display list!\n");
@@ -214,7 +215,7 @@ void GLSoccerView::initializeGL()
   glNewList(greyRobotShape, GL_COMPILE);
   drawRobot(teamUnknown,true,false);
   glEndList();
-
+  
   blueCircleRobotShape = glGenLists(1);
   if(blueRobotShape==GL_INVALID_VALUE){
     printf("Unable to create display list!\n");
@@ -223,7 +224,7 @@ void GLSoccerView::initializeGL()
   glNewList(blueCircleRobotShape, GL_COMPILE);
   drawRobot(teamBlue,false,false);
   glEndList();
-
+  
   yellowCircleRobotShape = glGenLists(1);
   if(yellowRobotShape==GL_INVALID_VALUE){
     printf("Unable to create display list!\n");
@@ -232,7 +233,7 @@ void GLSoccerView::initializeGL()
   glNewList(yellowCircleRobotShape, GL_COMPILE);
   drawRobot(teamYellow,false,false);
   glEndList();
-
+  
   greyCircleRobotShape = glGenLists(1);
   if(greyRobotShape==GL_INVALID_VALUE){
     printf("Unable to create display list!\n");
@@ -245,7 +246,7 @@ void GLSoccerView::initializeGL()
 
 
 void GLSoccerView::vectorTextTest()
-{
+{   
   #define TextTest(loc,angle,size,str,halign,valign) \
   {glText.drawString((loc),angle,size,str,halign,valign); \
   vector2d l1,l2; \
@@ -257,7 +258,7 @@ void GLSoccerView::vectorTextTest()
   glVertex3d(l1.x,l1.y,9); \
   glVertex3d(l2.x,l2.y,9); \
   glEnd();}
-
+  
   glColor3d(1,1,1);
   TextTest(vector2d(1,1)*353.6,45,500,"123agdo0",GLText::LeftAligned,GLText::MedianAligned)
   TextTest(vector2d(fieldDim.field_length*0.5,0),0,500,"123agdo0",GLText::RightAligned,GLText::BottomAligned)
@@ -275,12 +276,12 @@ void GLSoccerView::paintEvent(QPaintEvent* event)
   glDisable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_MULTISAMPLE);
-
+  
   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
   glLoadIdentity();
-  drawFieldLines(fieldDim);
+  glCallList(fieldLinesList);
   drawRobots();
   drawBalls();
   //vectorTextTest();
@@ -345,7 +346,7 @@ void GLSoccerView::drawRobot(int team, bool hasAngle, bool useDisplayLists)
     }
     return;
   }
-
+  
   switch ( team ){
     case teamBlue:{
       glColor3d(0.2549, 0.4941, 1.0);
@@ -370,7 +371,7 @@ void GLSoccerView::drawRobot(int team, bool hasAngle, bool useDisplayLists)
     glVertex3d(90.0*cos(theta2),90.0*sin(theta2),RobotZ);
     glEnd();
   }
-
+  
   switch ( team ){
     case teamBlue:{
       glColor3d(0.0706, 0.2314, 0.6275);
@@ -435,7 +436,7 @@ void GLSoccerView::drawRobot(vector2d loc, double theta, double conf, int robotI
   drawQuad(-96,124,-90.0,166,RobotZ+0.01);
   drawQuad(-96,160,96.0,166,RobotZ+0.01);
   drawQuad(90,124,96.0,166,RobotZ+0.01);
-
+  
   glRotated(theta,0,0,1.0);
   drawRobot(team, hasAngle, true);
   glPopMatrix();
@@ -444,27 +445,46 @@ void GLSoccerView::drawRobot(vector2d loc, double theta, double conf, int robotI
 void GLSoccerView::drawFieldLines(FieldDimensions& dimensions)
 {
   glColor4f(FIELD_LINES_COLOR);
-  for (size_t i = 0; i < fieldDim.lines.size(); ++i) {
-    const FieldLine& line = *fieldDim.lines[i];
-    const double half_thickness = 0.5 * line.thickness->getDouble();
-    const vector2d p1(line.p1_x->getDouble(), line.p1_y->getDouble());
-    const vector2d p2(line.p2_x->getDouble(), line.p2_y->getDouble());
-    const vector2d perp = (p2 - p1).norm().perp();
-    const vector2d corner1 = p1 - half_thickness * perp;
-    const vector2d corner2 = p2 + half_thickness * perp;
-    drawQuad(corner1, corner2, FieldZ);
-  }
+  
+  //Field boundary lines
+  drawQuad(-0.5*dimensions.field_length,-0.5*dimensions.field_width, 0.5*dimensions.field_length,-0.5*dimensions.field_width+dimensions.line_width,FieldZ);
+  drawQuad(-0.5*dimensions.field_length,0.5*dimensions.field_width-dimensions.line_width, 0.5*dimensions.field_length,0.5*dimensions.field_width,FieldZ);
+  drawQuad(-0.5*dimensions.field_length,-0.5*dimensions.field_width, -0.5*dimensions.field_length+dimensions.line_width,0.5*dimensions.field_width,FieldZ);
+  drawQuad(0.5*dimensions.field_length-dimensions.line_width,-0.5*dimensions.field_width, 0.5*dimensions.field_length,0.5*dimensions.field_width,FieldZ);
+  
+  //Field Mid Line and Circle
+  drawQuad(-0.5*dimensions.line_width,-0.5*dimensions.field_width, 0.5*dimensions.line_width,0.5*dimensions.field_width,FieldZ);
+  drawArc(0.0,0.0, dimensions.center_circle_radius-0.5*dimensions.line_width, dimensions.center_circle_radius+0.5*dimensions.line_width, -M_PI, M_PI,FieldZ);
+  
+  //Goals
+  drawQuad(-0.5*dimensions.field_length-dimensions.goal_depth-dimensions.goal_wall_width, -0.5*dimensions.goal_width-dimensions.goal_wall_width,
+           -0.5*dimensions.field_length, -0.5*dimensions.goal_width,FieldZ);
+  drawQuad(-0.5*dimensions.field_length-dimensions.goal_depth-dimensions.goal_wall_width, 0.5*dimensions.goal_width,
+           -0.5*dimensions.field_length, 0.5*dimensions.goal_width+dimensions.goal_wall_width,FieldZ);
+  drawQuad(-0.5*dimensions.field_length-dimensions.goal_depth-dimensions.goal_wall_width, -0.5*dimensions.goal_width-dimensions.goal_wall_width,
+           -0.5*dimensions.field_length-dimensions.goal_depth, 0.5*dimensions.goal_width+dimensions.goal_wall_width,FieldZ);
+  
+  drawQuad(0.5*dimensions.field_length, -0.5*dimensions.goal_width-dimensions.goal_wall_width,
+           0.5*dimensions.field_length+dimensions.goal_depth+dimensions.goal_wall_width, -0.5*dimensions.goal_width,FieldZ);
+  drawQuad(0.5*dimensions.field_length, 0.5*dimensions.goal_width,
+           0.5*dimensions.field_length+dimensions.goal_depth+dimensions.goal_wall_width, 0.5*dimensions.goal_width+dimensions.goal_wall_width,FieldZ);
+  drawQuad(0.5*dimensions.field_length+dimensions.goal_depth, -0.5*dimensions.goal_width-dimensions.goal_wall_width,
+           0.5*dimensions.field_length+dimensions.goal_depth+dimensions.goal_wall_width, 0.5*dimensions.goal_width+dimensions.goal_wall_width,FieldZ);
 
-  for (size_t i = 0; i < fieldDim.arcs.size(); ++i) {
-    const FieldCircularArc& arc = *fieldDim.arcs[i];
-    const double half_thickness = 0.5 * arc.thickness->getDouble();
-    const double radius = arc.radius->getDouble();
-    const vector2d center(arc.center_x->getDouble(), arc.center_y->getDouble());
-    const double a1 = arc.a1->getDouble();
-    const double a2 = arc.a2->getDouble();
-    drawArc(center, radius - half_thickness, radius + half_thickness, a1, a2,
-            FieldZ);
-  }
+  //Defense Areas
+  drawArc(-0.5*dimensions.field_length,0.5*dimensions.defense_stretch,dimensions.defense_radius-dimensions.line_width,dimensions.defense_radius,0, M_PI_2,FieldZ);
+  drawArc(-0.5*dimensions.field_length,-0.5*dimensions.defense_stretch,dimensions.defense_radius-dimensions.line_width,dimensions.defense_radius,-M_PI_2, 0,FieldZ);
+  drawQuad(-0.5*dimensions.field_length+dimensions.defense_radius-dimensions.line_width,-0.5*dimensions.defense_stretch,
+            -0.5*dimensions.field_length+dimensions.defense_radius,0.5*dimensions.defense_stretch,FieldZ);
+  drawArc(0.5*dimensions.field_length,0.5*dimensions.defense_stretch,dimensions.defense_radius-dimensions.line_width,dimensions.defense_radius,M_PI_2, M_PI,FieldZ);
+  drawArc(0.5*dimensions.field_length,-0.5*dimensions.defense_stretch,dimensions.defense_radius-dimensions.line_width,dimensions.defense_radius,-M_PI, -M_PI_2,FieldZ);
+  drawQuad(0.5*dimensions.field_length-dimensions.defense_radius,-0.5*dimensions.defense_stretch,
+           0.5*dimensions.field_length-dimensions.defense_radius+dimensions.line_width,0.5*dimensions.defense_stretch,FieldZ);
+
+  //Penalty marks
+  drawArc(-0.5*dimensions.field_length+dimensions.penalty_spot_from_field_line_dist,0,0,10,-M_PI,M_PI,FieldZ);
+  drawArc(0.5*dimensions.field_length-dimensions.penalty_spot_from_field_line_dist,0,0,10,-M_PI,M_PI,FieldZ);
+  
 }
 
 void GLSoccerView::drawBall(vector2d loc)
@@ -473,7 +493,7 @@ void GLSoccerView::drawBall(vector2d loc)
   drawArc(loc,0,16,-M_PI,M_PI,BallZ);
   glColor3d(0.8706,0.3490,0.0);
   drawArc(loc,15,21,-M_PI,M_PI,BallZ);
-
+  
 }
 
 void GLSoccerView::drawBalls()
@@ -495,7 +515,7 @@ void GLSoccerView::drawRobots()
   }
 }
 
-void GLSoccerView::updateDetection(const SSL_DetectionFrame& detection)
+void GLSoccerView::updateDetection(SSL_DetectionFrame& detection)
 {
   int numBlueRobots =  detection.robots_blue_size();
   int numYellowRobots =  detection.robots_yellow_size();
@@ -505,7 +525,7 @@ void GLSoccerView::updateDetection(const SSL_DetectionFrame& detection)
   SSL_DetectionBall sslBall;
   vector2d ball;
   int cam = detection.camera_id();
-
+  
   graphicsMutex.lock();
   if(cam+1>robots.size()){
     robots.resize(cam+1);
@@ -513,7 +533,7 @@ void GLSoccerView::updateDetection(const SSL_DetectionFrame& detection)
   if(cam+1>balls.size()){
     balls.resize(cam+1);
   }
-
+  
   robots[cam].clear();
   balls[cam].clear();
   for(int i=0; i<numBlueRobots; i++){
@@ -531,7 +551,7 @@ void GLSoccerView::updateDetection(const SSL_DetectionFrame& detection)
     robot.conf = sslRobot.confidence();
     robots[cam].append(robot);
   }
-
+  
   for(int i=0; i<numYellowRobots; i++){
     sslRobot = detection.robots_yellow(i);
     robot.loc.set(sslRobot.x(), sslRobot.y());
@@ -547,7 +567,7 @@ void GLSoccerView::updateDetection(const SSL_DetectionFrame& detection)
     robot.conf = sslRobot.confidence();
     robots[cam].append(robot);
   }
-
+  
   for(int i=0; i<numBalls; i++){
     sslBall = detection.balls(i);
     ball.set(sslBall.x(), sslBall.y());
@@ -555,29 +575,4 @@ void GLSoccerView::updateDetection(const SSL_DetectionFrame& detection)
   }
   graphicsMutex.unlock();
   postRedraw();
-}
-
-void GLSoccerView::updateFieldGeometry(const SSL_GeometryFieldSize& fieldSize) {
-  graphicsMutex.lock();
-  for (size_t i = 0; i < fieldDim.lines.size(); ++i) {
-    delete fieldDim.lines[i];
-  }
-  fieldDim.lines.clear();
-  for (size_t i = 0; i < fieldSize.field_lines_size(); ++i) {
-    const SSL_FieldLineSegment& line = fieldSize.field_lines(i);
-    fieldDim.lines.push_back(new FieldLine(
-        line.name(), line.p1().x(), line.p1().y(), 
-        line.p2().x(), line.p2().y(), line.thickness()));
-  }
-  for (size_t i = 0; i < fieldDim.arcs.size(); ++i) {
-    delete fieldDim.arcs[i];
-  }
-  fieldDim.arcs.clear();
-  for (size_t i = 0; i < fieldSize.field_arcs_size(); ++i) {
-    const SSL_FieldCicularArc& arc = fieldSize.field_arcs(i);
-    fieldDim.arcs.push_back(new FieldCircularArc(
-        arc.name(), arc.center().x(), arc.center().y(),  arc.radius(),
-        arc.a1(), arc.a2(), arc.thickness()));
-  }
-  graphicsMutex.unlock();
 }
