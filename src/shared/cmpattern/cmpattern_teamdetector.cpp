@@ -416,7 +416,7 @@ void TeamDetector::findRobotsByModel(::google::protobuf::RepeatedPtrField< ::SSL
   (void)image;
   const int MaxDetections = _other_markers_max_detections;
   Marker cen; // center marker
-  Marker markers[MaxDetections];
+  Marker* markers = new Marker[MaxDetections];
   const float marker_max_query_dist = _other_markers_max_query_distance;
   const float marker_max_dist = _pattern_max_dist;
 
@@ -505,6 +505,8 @@ void TeamDetector::findRobotsByModel(::google::protobuf::RepeatedPtrField< ::SSL
   while(robots->size() > _max_robots) {
     robots->RemoveLast();
   }
+
+  delete[] markers;
 
 }
 

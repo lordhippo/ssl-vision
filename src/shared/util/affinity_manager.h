@@ -25,8 +25,8 @@
 #include <string.h>
 #include <vector>
 #include <unistd.h>
-#include <asm/unistd.h>
-#include <syscall.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 #include <sched.h>
 #include "pthread.h"
 #define DT_LOCK pthread_mutex_lock((pthread_mutex_t*)_mutex);

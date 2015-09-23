@@ -21,7 +21,11 @@
 
 #ifndef GLCAMERA_H
 #define GLCAMERA_H
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+  #else
 #include "GL/gl.h"
+  #endif
 #include "globject.h"
 #include "geometry.h"
 #ifndef NO_QT

@@ -13,6 +13,12 @@ set (QT_USE_QTOPENGL true)
 
 find_package ( Qt4 REQUIRED )
 
+#SET(GUI_TYPE MACOSX_BUNDLE)
+FIND_LIBRARY(OPENGL_LIBRARY OpenGL)
+
+link_directories(/usr/local/lib)
+link_directories(/usr/local/opt/jpeg-turbo/lib)
+
 include_directories(${PROJECT_BINARY_DIR})
 
 include ( ${QT_USE_FILE} )
@@ -23,6 +29,9 @@ include_directories(${PROJECT_SOURCE_DIR}/src/app)
 include_directories(${PROJECT_SOURCE_DIR}/src/app/gui)
 include_directories(${PROJECT_SOURCE_DIR}/src/app/plugins)
 include_directories(${PROJECT_SOURCE_DIR}/src/app/stacks)
+include_directories(/usr/local/include)
+include_directories(/usr/local/include/eigen2)
+include_directories(/usr/local/opt/jpeg-turbo/include)
 
 set (SRCS
 	src/app/capture_thread.cpp
@@ -128,10 +137,10 @@ elseif (${arch} MATCHES "x86")
 endif()
 
 #flags to set in debug mode
-set (CMAKE_CXX_FLAGS_DEBUG "-g -Wl,--no-as-needed")
+set (CMAKE_CXX_FLAGS_DEBUG "-g")
 
 #flags to set in release mode
-set (CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -march=native -Wl,--no-as-needed")
+set (CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -march=native -Wno-deprecated-declarations")
 
 message( STATUS "CC Flags: ${CMAKE_CXX_FLAGS_RELEASE}")
 message (STATUS "Custom CC Flags: ${cc_flags}")
@@ -142,11 +151,11 @@ add_definitions(${cc_flags})
 add_library(sslvision ${SHARED_MOC_SRCS} ${SHARED_RC_SRCS} ${CC_PROTO} ${SHARED_SRCS})
 add_dependencies(sslvision GenerateProto)
 
-set (libs ${QT_LIBRARIES} dc1394 jpeg png protobuf pthread GL GLU sslvision)
+set (libs ${QT_LIBRARIES} dc1394 jpeg png protobuf pthread ${OPENGL_LIBRARY} sslvision)
 
 ## build the main app
 set (target vision)
-add_executable(${target} ${UI_SRCS} ${MOC_SRCS} ${RC_SRCS} ${SRCS})
+add_executable(${target} ${GUI_TYPE} ${UI_SRCS} ${MOC_SRCS} ${RC_SRCS} ${SRCS})
 target_link_libraries(${target} ${libs})
 
 ##build non graphical client
@@ -167,7 +176,7 @@ target_link_libraries(${lclient} ${libs})
 
 ##build graphical client
 set (gclient graphicalClient)
-add_executable(${gclient} ${GCLIENT_MOC_SRCS}
+add_executable(${gclient} ${GUI_TYPE} ${GCLIENT_MOC_SRCS}
   src/graphicalClient/main.cpp
   src/graphicalClient/soccerview.cpp
   src/graphicalClient/gltext.cpp

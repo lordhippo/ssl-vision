@@ -21,6 +21,10 @@
 
 #include "gltext.h"
 
+#ifndef _GLUfuncptr
+typedef GLvoid (*_GLUfuncptr)();
+#endif
+
 GLText::GLText(QFont _font)
 {
   glyphs.clear();
