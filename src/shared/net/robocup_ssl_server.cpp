@@ -19,14 +19,17 @@
 */
 //========================================================================
 #include "robocup_ssl_server.h"
+#include <string.h>
 
-RoboCupSSLServer::RoboCupSSLServer(int port,
+RoboCupSSLServer::RoboCupSSLServer(short port,
                      string net_address,
                      string net_interface)
 {
   _port=port;
   _net_address=net_address;
   _net_interface=net_interface;
+
+  socket = nullptr;
 
 }
 
@@ -36,28 +39,20 @@ RoboCupSSLServer::~RoboCupSSLServer()
 }
 
 void RoboCupSSLServer::close() {
-  mc.close();
+  if (socket != nullptr) {
+    delete socket;
+    socket = nullptr;
+  }
 }
 
 bool RoboCupSSLServer::open() {
   close();
-  
-  if(!mc.open(_port,true,true)) {
+
+  try {
+    socket = new UDPSocket();
+  }
+  catch(...) {
     fprintf(stderr,"Unable to open UDP network port: %d\n",_port);
-    fflush(stderr);
-    return(false);
-  }
-
-  Net::Address multiaddr,interface;
-  multiaddr.setHost(_net_address.c_str(),_port);
-  if(_net_interface.length() > 0){
-    interface.setHost(_net_interface.c_str(),_port);
-  }else{
-    interface.setAny();
-  }
-
-  if(!mc.addMulticast(multiaddr,interface)) {
-    fprintf(stderr,"Unable to setup UDP multicast\n");
     fflush(stderr);
     return(false);
   }
@@ -68,16 +63,17 @@ bool RoboCupSSLServer::open() {
 bool RoboCupSSLServer::send(const SSL_WrapperPacket & packet) {
   string buffer;
   packet.SerializeToString(&buffer);
-  Net::Address multiaddr;
-  multiaddr.setHost(_net_address.c_str(),_port);
-  bool result;
   mutex.lock();
-  result=mc.send(buffer.c_str(),buffer.length(),multiaddr);
-  mutex.unlock();
-  if (result==false) {
+  try {
+    socket -> sendTo ( buffer.c_str() , buffer.length() , _net_address , _port );
+  }
+  catch (...)
+  {
     fprintf(stderr,"Sending UDP datagram failed (maybe too large?). Size was: %zu byte(s)\n",buffer.length());
   }
-  return(result);
+
+  mutex.unlock();
+  return(true);
 }
 
 bool RoboCupSSLServer::send(const SSL_DetectionFrame & frame) {

@@ -1,3 +1,4 @@
 /bin/**
 /build/**
 /src/shared/proto/cpp/*
+.idea/**

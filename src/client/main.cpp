@@ -24,6 +24,8 @@
 //#include <QPlastiqueStyle>
 //#include "mainwindow.h"
 
+#include <iostream>
+
 #include <stdio.h>
 #include <QThread>
 #include "robocup_ssl_client.h"
@@ -55,12 +57,17 @@ int main(int argc, char *argv[])
     (void)argc;
     (void)argv;
 
+    std::cout<<"mashghi"<<endl;
+
     RoboCupSSLClient client;
     client.open(true);
     SSL_WrapperPacket packet;
 
+    printf("alaki");
+
     while(true) {
         if (client.receive(packet)) {
+            std::cout<<"-----Received Wrapper Packet---------------------------------------------\n"<<endl;
             printf("-----Received Wrapper Packet---------------------------------------------\n");
             //see if the packet contains a robot detection frame:
             if (packet.has_detection()) {

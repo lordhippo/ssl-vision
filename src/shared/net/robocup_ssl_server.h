@@ -20,7 +20,7 @@
 //========================================================================
 #ifndef ROBOCUP_SSL_SERVER_H
 #define ROBOCUP_SSL_SERVER_H
-#include "netraw.h"
+#include "PracticalSocket.h"
 #include <string>
 #include <QMutex>
 #include "messages_robocup_ssl_detection.pb.h"
@@ -33,14 +33,14 @@ using namespace std;
 class RoboCupSSLServer{
 friend class MultiStackRoboCupSSL;
 protected:
-  Net::UDP mc; // multicast server
+  UDPSocket* socket;
   QMutex mutex;
-  int _port;
+    short _port;
   string _net_address;
   string _net_interface;
 
 public:
-    RoboCupSSLServer(int port = 10002,
+    RoboCupSSLServer(short port = 10002,
                      string net_ref_address="224.5.23.2",
                      string net_ref_interface="");
 

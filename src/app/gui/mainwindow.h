@@ -50,7 +50,6 @@ class MainWindow : public QMainWindow, public Ui_MainWindow
     Q_OBJECT
 
 public:
-  AffinityManager * affinity;
   //GetOpt * opt;
   VarList * root;
   VarTreeView * tree_view;

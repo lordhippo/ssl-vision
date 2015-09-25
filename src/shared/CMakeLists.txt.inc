@@ -32,6 +32,7 @@ set (SHARED_SRCS
 	${shared_dir}/gl/globject.cpp
 
 	${shared_dir}/net/netraw.cpp
+	${shared_dir}/net/PracticalSocket.cpp
 	${shared_dir}/net/robocup_ssl_client.cpp
 	${shared_dir}/net/robocup_ssl_server.cpp
 

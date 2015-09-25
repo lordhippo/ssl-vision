@@ -24,7 +24,6 @@
 CaptureThread::CaptureThread(int cam_id)
 {
   camId=cam_id;
-  affinity=0;
   settings=new VarList("Image Capture");
 
   settings->addChild( (VarType*) (control= new VarList("Capture Control")));
@@ -60,9 +59,6 @@ CaptureThread::CaptureThread(int cam_id)
   rb=0;
 }
 
-void CaptureThread::setAffinityManager(AffinityManager * _affinity) {
-  affinity=_affinity;
-}
 
 void CaptureThread::setStack(VisionStack * _stack) {
   stack_mutex.lock();
@@ -168,10 +164,6 @@ void CaptureThread::refresh() {
 void CaptureThread::run() {
     CaptureStats * stats;
     bool changed;
-
-    if (affinity!=0) {
-      affinity->demandCore(camId);
-    }
 
     while(true) {
       if (rb!=0) {

@@ -54,27 +54,13 @@ PluginFindBlobs::~PluginFindBlobs()
 
 
 void PluginFindBlobs::mc_close() {
-  mc.close();
+  //TODO
 }
 
 bool PluginFindBlobs::mc_open() {
   mc_close();
 
-  if(!mc.open(_v_net_port->getInt(),true,true)) {
-    fprintf(stderr,"Unable to open UDP network port: %d\n",_v_net_port->getInt());
-    fflush(stderr);
-    return(false);
-  }
-
-  Net::Address multiaddr,interface;
-  multiaddr.setHost(_v_net_ip->getString().c_str(),_v_net_port->getInt());
-  interface.setAny();
-
-  if(!mc.addMulticast(multiaddr,interface)) {
-    fprintf(stderr,"Unable to setup UDP multicast\n");
-    fflush(stderr);
-    return(false);
-  }
+  //TODO
 
   return(true);
 }
@@ -82,10 +68,9 @@ bool PluginFindBlobs::mc_open() {
 bool PluginFindBlobs::mc_send() {
   string buffer;
   lframe.SerializeToString(&buffer);
-  Net::Address multiaddr;
-  multiaddr.setHost(_v_net_ip->getString().c_str(),_v_net_port->getInt());
-  bool result;
-  result=mc.send(buffer.c_str(),buffer.length(),multiaddr);
+
+  bool result = true;
+  //result=mc.send(buffer.c_str(),buffer.length(),multiaddr);
   if (result==false) {
     fprintf(stderr,"Sending UDP datagram failed (maybe too large?). Size was: %zu byte(s)\n",buffer.length());
   }

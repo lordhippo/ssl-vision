@@ -49,7 +49,6 @@ protected:
   CaptureInterface * captureDC1394;
   CaptureInterface * captureFiles;
   CaptureInterface * captureGenerator;
-  AffinityManager * affinity;
   FrameBuffer * rb;
   bool _kill;
   int camId;
@@ -80,7 +79,6 @@ public:
   VisionStack * getStack() const;
   void kill();
   VarList * getSettings();
-  void setAffinityManager(AffinityManager * _affinity);
   CaptureThread(int cam_id);
   ~CaptureThread();
 

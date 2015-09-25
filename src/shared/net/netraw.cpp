@@ -137,7 +137,7 @@ bool UDP::open(int port, bool share_port_for_multicasting, bool multicast_includ
 
 bool UDP::addMulticast(const Address &multiaddr,const Address &interface)
 {
-  static const bool debug = false;
+  static const bool debug = true;
   struct ip_mreq imreq;
   imreq.imr_multiaddr.s_addr = multiaddr.getInAddr();
   imreq.imr_interface.s_addr = interface.getInAddr();
@@ -187,6 +187,7 @@ bool UDP::send(const void *data,int length,const Address &dest)
 
 int UDP::recv(void *data,int length,Address &src)
 {
+  printf("client rcv");
   src.addr_len = sizeof(src.addr);
   int len = recvfrom(fd,data,length,0,&src.addr,&src.addr_len);
 

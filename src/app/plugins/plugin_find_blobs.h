@@ -26,8 +26,8 @@
 #include "cmvision_region.h"
 #include "camera_calibration.h"
 #include "messages_robocup_ssl_detection.pb.h"
-#include "netraw.h"
 #include "field_filter.h"
+#include "PracticalSocket.h"
 
 /**
 	@author Stefan Zickler
@@ -59,7 +59,7 @@ protected:
       FieldFilter field_filter;
 
       LHP_Frame lframe;
-      Net::UDP mc; // multicast server
+      UDPSocket* socket;
       bool mc_open();
       void mc_close();
       bool mc_send();
