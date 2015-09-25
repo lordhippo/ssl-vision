@@ -2,3 +2,6 @@
 /build/**
 /src/shared/proto/cpp/*
 .idea/**
+robocup-ssl*.xml
+settings.xml
+CMakeLists.txt.user
