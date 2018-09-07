@@ -84,7 +84,9 @@ private:
   static const double maxZValue;
   static const double FieldZ;
   static const double RobotZ;
+  static const double RobotR;
   static const double BallZ;
+  static const double BallR;
   static const int PreferedWidth;
   static const int PreferedHeight;
   static const double MinRedrawInterval; ///Minimum time between graphics updates (limits the fps)

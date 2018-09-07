@@ -28,7 +28,9 @@ const double GLSoccerView::minZValue = -10;
 const double GLSoccerView::maxZValue = 10;
 const double GLSoccerView::FieldZ = 1.0;
 const double GLSoccerView::RobotZ = 2.0;
+const double GLSoccerView::RobotR = 90.0;
 const double GLSoccerView::BallZ = 3.0;
+const double GLSoccerView::BallR = 16.0;
 const int GLSoccerView::PreferedWidth = 1024;
 const int GLSoccerView::PreferedHeight = 768;
 const double GLSoccerView::MinRedrawInterval = 0.016; ///Minimum time between graphics updates (limits the fps)
@@ -355,12 +357,12 @@ void GLSoccerView::drawRobot(int team, bool hasAngle, bool useDisplayLists)
   }
   double theta1 = hasAngle?RAD(40):0.0;
   double theta2 = 2.0*M_PI - theta1;
-  drawArc(0,0,0,90,theta1, theta2, RobotZ);
+  drawArc(0,0,0,RobotR,theta1, theta2, RobotZ);
   if(hasAngle){
     glBegin(GL_TRIANGLES);
     glVertex3d(0,0,RobotZ);
-    glVertex3d(90.0*cos(theta1),90.0*sin(theta1),RobotZ);
-    glVertex3d(90.0*cos(theta2),90.0*sin(theta2),RobotZ);
+    glVertex3d(RobotR*cos(theta1),RobotR*sin(theta1),RobotZ);
+    glVertex3d(RobotR*cos(theta2),RobotR*sin(theta2),RobotZ);
     glEnd();
   }
 
@@ -378,9 +380,9 @@ void GLSoccerView::drawRobot(int team, bool hasAngle, bool useDisplayLists)
       break;
     }
   }
-  drawArc(0,0,80,90,theta1, theta2, RobotZ+0.01);
+  drawArc(0,0,0.9*RobotR,RobotR,theta1, theta2, RobotZ+0.01);
   if(hasAngle)
-    drawQuad(90.0*cos(theta1)-10,90.0*sin(theta1), 90.0*cos(theta2),90.0*sin(theta2),RobotZ+0.01);
+    drawQuad(RobotR*cos(theta1)-0.1*RobotR,RobotR*sin(theta1), RobotR*cos(theta2),RobotR*sin(theta2),RobotZ+0.01);
 }
 
 void GLSoccerView::drawRobot(vector2d loc, double theta, double conf, int robotID, int team, bool hasAngle)
@@ -402,14 +404,14 @@ void GLSoccerView::drawRobot(vector2d loc, double theta, double conf, int robotI
       break;
     }
   }
-  drawQuad(-90,130,-90.0+180.0*conf,160,RobotZ);
+  drawQuad(-RobotR,1.45*RobotR,-RobotR+2.0*RobotR*conf,1.8*RobotR,RobotZ);
   glColor3d(0.0,0.0,0.0);
   char buf[1024];
   if(robotID!=unknownRobotID)
     snprintf(buf,1023,"%X",robotID);
   else
     snprintf(buf,1023,"?");
-  glText.drawString(loc,0,100,buf,GLText::CenterAligned,GLText::MiddleAligned);
+  glText.drawString(loc,0,1.1*RobotR,buf,GLText::CenterAligned,GLText::MiddleAligned);
   switch ( team ){
     case teamBlue:{
       glColor3d(0.0706, 0.2314, 0.6275);
@@ -424,10 +426,10 @@ void GLSoccerView::drawRobot(vector2d loc, double theta, double conf, int robotI
       break;
     }
   }
-  drawQuad(-96,124,96.0,130,RobotZ+0.01);
-  drawQuad(-96,124,-90.0,166,RobotZ+0.01);
-  drawQuad(-96,160,96.0,166,RobotZ+0.01);
-  drawQuad(90,124,96.0,166,RobotZ+0.01);
+  drawQuad(-1.07*RobotR,1.37*RobotR,1.07*RobotR,1.44*RobotR,RobotZ+0.01);
+  drawQuad(-1.07*RobotR,1.37*RobotR,-RobotR,1.84*RobotR,RobotZ+0.01);
+  drawQuad(-1.07*RobotR,1.77*RobotR,1.07*RobotR,1.84*RobotR,RobotZ+0.01);
+  drawQuad(RobotR,1.37*RobotR,1.07*RobotR,1.84*RobotR,RobotZ+0.01);
 
   glRotated(theta,0,0,1.0);
   drawRobot(team, hasAngle, true);
@@ -463,9 +465,9 @@ void GLSoccerView::drawFieldLines(FieldDimensions& dimensions)
 void GLSoccerView::drawBall(vector2d loc)
 {
   glColor3d(1.0,0.5059,0.0);
-  drawArc(loc,0,16,-M_PI,M_PI,BallZ);
+  drawArc(loc,0,BallR,-M_PI,M_PI,BallZ);
   glColor3d(0.8706,0.3490,0.0);
-  drawArc(loc,15,21,-M_PI,M_PI,BallZ);
+  drawArc(loc,0.94*BallR,1.3*BallR,-M_PI,M_PI,BallZ);
 
 }
 
